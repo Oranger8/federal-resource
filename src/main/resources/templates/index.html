@@ -1,0 +1,19 @@
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+
+<head>
+    <title>ФедРесурс клиент</title>
+    <th:block th:insert="~{header :: header}"/>
+</head>
+
+<body>
+<div th:replace="~{navbar :: navbar}"></div>
+<div>
+    <form class="d-flex" method="post" th:action="@{/api/test}">
+        <button type="submit" class="btn btn-danger">test</button>
+    </form>
+</div>
+</body>
+
+<th:block th:insert="~{footer :: footer}"/>
+
+</html>
