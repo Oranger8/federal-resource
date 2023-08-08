@@ -2,8 +2,9 @@ package my.orange.fedresurs.service
 
 import kotlinx.coroutines.flow.*
 import my.orange.fedresurs.domain.*
-import org.apache.poi.xssf.streaming.SXSSFSheet
 import org.apache.poi.xssf.streaming.SXSSFWorkbook
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Service
 import kotlin.io.path.Path
 import kotlin.io.path.outputStream
@@ -11,21 +12,21 @@ import kotlin.io.path.outputStream
 @Service
 class ExcelServiceImpl : ExcelService {
 
+    private val template = ClassPathResource("template.xlsx").file
     private val filename = "fedresurs.xlsx"
     private val rowFlushSize = 100
     private val cellDatePattern = "d.m.yy h:mm"
 
     override suspend fun export(messages: Flow<Message>) {
-        SXSSFWorkbook().use { workbook ->
+        SXSSFWorkbook(XSSFWorkbook(template)).use { workbook ->
             Path(filename).outputStream().use { outputStream ->
-                val sheet = workbook.createSheet()
+                val sheet = workbook.getSheetAt(0)
 
                 val dateFormat = workbook.creationHelper.createDataFormat().getFormat(cellDatePattern)
                 val cellStyle = workbook.createCellStyle()
                 cellStyle.dataFormat = dateFormat
 
-                createHeader(sheet)
-                var rowNumber = 0
+                var rowNumber = 1
                 messages.map { message ->
                     val row = sheet.createRow(++rowNumber)
 
@@ -95,67 +96,6 @@ class ExcelServiceImpl : ExcelService {
                 }.collect()
             }
         }
-    }
-    
-    private fun createHeader(sheet: SXSSFSheet) {
-        val row = sheet.createRow(0)
-        var cellNumber = 0
-        
-        var cell = row.createCell(cellNumber)
-        cell.setCellValue("guid")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Номер")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Дата публикации")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Дата раскрытия")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Тип сообщения")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Тип публикатора")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Полное наименование публикатора")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("ИНН публикатора")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("ОГРН публикатора")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("ЕГРУЛ адрес публикатора")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("ФИО публикатора")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("ОГРН ИП публикатора")
-        cell = row.createCell(++cellNumber)
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Наименование публикатора")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Наименование публикатора латиницей")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Код страны публикатора")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Наименование страны публикатора")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Регистрационный номер публикатора")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("ИНН (или типа того) публикатора")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Участники")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Содержимое")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Сообщение об аннулировании")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Причина блокировки")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Файлы")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Связанные сообщения")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Нотариальная информация")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Арбитр менеджер инфо")
-        cell = row.createCell(++cellNumber)
-        cell.setCellValue("Доп инфо о содержимом")
     }
 
     private fun <T> List<T>.asCellValue(mapper: StringBuilder.(T) -> StringBuilder) = buildString {
