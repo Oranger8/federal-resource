@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 
 data class MessagesResponse(
     val total: Int,
-    val messages: List<MessageDesc>
+    val messages: List<MessageDesc> = emptyList()
 )
 
 data class MessageDesc(
