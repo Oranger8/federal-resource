@@ -10,7 +10,6 @@ import my.orange.fedresurs.flatMap
 import my.orange.fedresurs.logger
 import my.orange.fedresurs.service.FederalResourceService
 import my.orange.fedresurs.service.PasswordEncryptor
-import my.orange.fedresurs.service.Sha512PasswordEncryptor
 import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -21,7 +20,6 @@ import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.onErrorMap
 import reactor.util.retry.Retry
 import java.time.Duration
-import java.time.LocalDateTime
 
 @Service
 class FederalResourceServiceClient(
@@ -89,12 +87,12 @@ class FederalResourceServiceClient(
     override fun export(filter: MessageFilter, pageable: Pageable): Flow<Message> = filter.by30Days()
         .flatMap {
             val (total, messages) = getMessages(it, pageable)
-            println("Found ${messages.size} messages")
+            logger.info("Found ${messages.size} messages")
             messages.asFlow()
                 .mapNotNull { messageDesc -> getMessage(messageDesc.guid) }
-                .onEach { message -> println("Received message ${message.guid}") }
+                .onEach { message -> logger.info("Received message ${message.guid}") }
                 .onCompletion { throwable ->
-                    throwable?.let { th -> println("Error: ${th.message}") }
+                    throwable?.let { th -> logger.error("Error: ${th.message}", th) }
                     if (throwable == null && pageable.hasNext(total)) {
                         emitAll(export(it, pageable.next()))
                     }
@@ -106,11 +104,11 @@ class FederalResourceServiceClient(
         return flow {
             if (Duration.between(dateBegin, dateEnd) > Duration.ofDays(30)) {
                 val nextDate = dateBegin!!.plusDays(30)
-                println("Looking till $nextDate")
+                logger.info("Looking between $dateBegin - $nextDate")
                 emit(copy(dateEnd = nextDate))
                 emitAll(copy(dateBegin = nextDate).by30Days())
             } else {
-                println("Looking till $dateEnd")
+                logger.info("Looking between $dateBegin - $dateEnd")
                 emit(this@by30Days)
             }
         }
@@ -124,16 +122,4 @@ class FederalResourceServiceClient(
     private fun UriBuilder.applyFilter(filter: MessageFilter) = messageFilter2UriAdapter(this, filter)
 
     private fun UriBuilder.applyPageable(pageable: Pageable) = pageable2UriAdapter(this, pageable)
-}
-
-suspend fun main() {
-    FederalResourceServiceClient(FederalResourceProperties(), WebClient.builder(), Sha512PasswordEncryptor()).run {
-        MessageFilter(
-            dateBegin = LocalDateTime.of(2023, 1, 1, 0, 0, 0),
-            dateEnd = LocalDateTime.now()
-        ).by30Days()
-            .collect {
-                if (Duration.between(it.dateBegin, it.dateEnd) > Duration.ofDays(30)) println(it)
-            }
-    }
 }

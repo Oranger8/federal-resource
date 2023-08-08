@@ -2,6 +2,7 @@ package my.orange.fedresurs.service
 
 import kotlinx.coroutines.flow.*
 import my.orange.fedresurs.domain.*
+import my.orange.fedresurs.logger
 import org.apache.poi.xssf.streaming.SXSSFWorkbook
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.springframework.core.io.ClassPathResource
@@ -11,6 +12,8 @@ import kotlin.io.path.outputStream
 
 @Service
 class ExcelServiceImpl : ExcelService {
+
+    private val logger = logger()
 
     private val template = ClassPathResource("template.xlsx").file
     private val filename = "fedresurs.xlsx"
@@ -88,11 +91,14 @@ class ExcelServiceImpl : ExcelService {
                     cell = row.createCell(++cellNumber)
                     cell.setCellValue(message.contentAdditionalInfo?.asCellValue())
                 }.onEach {
-                    println("Message written")
-                    if (rowNumber % rowFlushSize == 0) sheet.flushRows(rowFlushSize).also { println("Rows flushed") }
+                    logger.info("Message written")
+                    if (rowNumber % rowFlushSize == 0) {
+                        sheet.flushRows(rowFlushSize)
+                        logger.info("Rows flushed")
+                    }
                 }.onCompletion {
                     workbook.write(outputStream)
-                    println("Export complete")
+                    logger.info("Export complete")
                 }.collect()
             }
         }
